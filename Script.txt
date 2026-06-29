@@ -1,0 +1,470 @@
+#database
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+DATA_BASE_URL = "sqlite:///./database.db"
+engine = create_engine(DATA_BASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+#models
+from database import Base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer,primary_key=True,autoincrement=True)
+    username = Column(String,nullable=False,unique=True)
+    email = Column(String,nullable=False,unique=True)
+    password = Column(String,nullable=False)
+    role = Column(String,default="user")
+    orders = relationship(
+        "Order",
+        back_populates="user"
+    )
+
+
+class Product(Base):
+    __tablename__ = "products"
+    id = Column(Integer,primary_key=True,autoincrement=True)
+    name = Column(String,nullable=False)
+    price = Column(Integer,nullable=False)
+    stock = Column(Integer,nullable=False,default=0)
+
+class Order(Base):
+    __tablename__ = "orders"
+    id = Column(Integer,primary_key=True,autoincrement=True)
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id"
+        )
+    )
+    user = relationship(
+        "User",
+        back_populates="orders"
+    )
+
+    status = Column(String,default="pending")
+    
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True)
+
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id")
+    )
+
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id")
+    )
+
+    quantity = Column(Integer,nullable=True)
+#schemas
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+#User
+class CreateUser(BaseModel):
+    username : str
+    email : EmailStr
+    password : str = Field(min_length=8,max_length=20)
+    role : str = Field(default="user")
+
+class UserResponse(BaseModel):
+    username : str
+    email : EmailStr
+    role : str 
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+    
+class UpdateUser(BaseModel):
+    username : str
+
+class LoginUser(BaseModel):
+    username : str
+    password : str
+#Product
+class CreateProduct(BaseModel):
+    name : str
+    price : int
+    stock : int
+
+class UpdateProduct(BaseModel):
+    stock : int
+#order
+class UpdateStatus(BaseModel):
+    status : str 
+
+class OrderItems(BaseModel):
+    product_id : int
+    quantity : int
+
+class UpdateItems(BaseModel):
+    quantity : str
+#auth
+from fastapi import HTTPException, Depends
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordBearer
+from dependecies import get_db
+from models import User
+pwd_context =CryptContext(
+    schemes=["bcrypt"]
+)
+SECRET_KEY = "my_super_secret_key"
+ALRGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="login"
+)
+
+
+def hash_password(password : str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(
+        plain_password : str,
+        hashd_password : str
+):
+    return pwd_context.verify(
+        plain_password,
+        hashd_password
+    )
+
+def create_access_token(data : dict):
+    to_encode = data.copy()
+
+    expire = datetime.utcnow() + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES                                    
+    )
+    to_encode.update(
+        {
+            "exp" : expire
+        }
+    )
+    encode_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALRGORITHM
+    )
+    
+    return encode_jwt
+
+def verify_token(
+        token : str
+):
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALRGORITHM]
+        )
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+            )
+def get_current_user(
+        token : str=Depends(oauth2_scheme),
+        db : Session=Depends(get_db)
+):
+    payload = verify_token(token)
+    user_id = payload.get("sub")
+
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token!"
+        )
+    user = db.get(User,int(user_id))
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Inavlid Token"
+        )
+    return user
+
+def get_current_admin(
+        current_user=Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+    return current_user
+#dependecies
+from database import SessionLocal
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+#route/users
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import User
+from schemas import CreateUser, UserResponse, UpdateUser, LoginUser
+from auth import hash_password, verify_password, create_access_token, verify_token, get_current_user, get_current_admin
+from dependecies import get_db 
+
+router = APIRouter()
+
+
+@router.post("/users",response_model=UserResponse)
+def create_user(
+    user : CreateUser,
+    db : Session=Depends(get_db)
+):
+    new_user = User(
+        username=user.username,
+        email=user.email,
+        password=hash_password(user.password),
+        role=user.role
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+@router.get("/users",response_model=list[UserResponse])
+def get_users(
+    db : Session=Depends(get_db)
+):
+    return db.query(User).all()
+
+@router.put("/users/{id}",response_model=UserResponse)
+def update_user(
+    id : int,
+    user : UpdateUser,
+    db : Session=Depends(get_db)
+):
+    user_db = db.get(User,id)
+    if not user_db:
+        raise HTTPException(status_code=404,detail="User not found")
+
+    user_db.username=user.username
+
+    db.commit()
+    db.refresh(user_db)
+    return user_db
+
+@router.delete("/users/{id}")
+def delete_user(
+    id : int,
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    user_db = db.get(User,id)
+
+    if not user_db:
+        raise HTTPException(status_code=404,detail="User not found")
+    
+    db.delete(user_db)
+    db.commit()
+
+    return {
+        "message" : "Deleted successfully"
+    }
+
+@router.post("/login")
+def login(
+    user : LoginUser,
+    db : Session=Depends(get_db)
+):
+    user_db = db.query(User).filter_by(
+        username=user.username
+    ).first()
+
+    if not user_db:
+        raise HTTPException(status_code=404,detail="User not found")
+    elif verify_password(user.password,user_db.password):
+        token = create_access_token(
+            {
+                "sub" : str(user_db.id),
+                "role" : user_db.role
+            }
+        )
+        return {
+            "access_token" : token,
+            "token_type" : "bearer"
+        }
+    else:
+        raise HTTPException(status_code=401,detail="Password wrong")
+@router.get("/me",response_model=UserResponse)
+def profile(
+    current_user=Depends(get_current_user)
+):
+    return current_user
+#route/products
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import Product
+from schemas import CreateProduct, UpdateProduct
+from auth import get_current_admin
+from dependecies import get_db 
+
+router = APIRouter()
+
+@router.post("/products/admin")
+def create_product(
+    product : CreateProduct,
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    new_product = Product(
+        name=product.name,
+        price=product.price,
+        stock=product.stock
+    )
+
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+
+    return new_product
+
+@router.get("/products")
+def get_products(
+    db : Session=Depends(get_db)
+    ):
+   
+    return db.query(Product).all()
+
+@router.put("/products/admin/{id}")
+def update_stock(
+    id : int,
+    product : UpdateProduct,
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    product_db = db.get(Product,id)
+    if not product_db:
+        raise HTTPException(status_code=404,detail="Product not found")
+    
+    product_db.stock+=product.stock
+    db.commit()
+    db.refresh(product_db)
+
+    return product_db
+
+@router.delete("/products/admin/{id}")
+def delete_prodcut(
+    id : int,
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    product_db = db.get(Product,id)
+    if not product_db:
+        raise HTTPException(status_code=404,detail="Product not found")
+    
+    db.delete(product_db)
+    db.commit()
+
+    
+    return {
+        "message" : "Deleted successfully"
+    }
+#route/orders
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import Order, OrderItem, Product
+from schemas import UpdateStatus, OrderItems, UpdateItems
+from dependecies import get_db
+from auth import get_current_user
+
+router= APIRouter()
+
+@router.post("/orders")
+def create_order(
+    db : Session=Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    order = Order(
+        user_id=current_user.id
+    )
+
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    return order
+@router.put("/orders/{id}")
+def update_status(
+    id : int,
+    order : UpdateStatus,
+    db : Session=Depends(get_db)
+):
+    order_db = db.get(Order,id)
+    if not order_db:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    order_db.status=order.status
+    db.commit()
+    db.refresh(order_db)
+
+    return order_db
+    
+
+@router.get("/me/orders")
+def my_order(
+    current_user=Depends(get_current_user)
+):
+    return current_user.orders
+
+@router.post("/orders/{order_id}/items")
+def add_item(
+    order_id : int,
+    order : OrderItems,
+    db : Session=Depends(get_db),
+):
+    order_db = db.get(Order,order_id)
+    if not order_db:
+        raise HTTPException(status_code=404,detail="Order not found")
+    
+    item = OrderItem(
+        order_id=order_id,
+        product_id=order.product_id,
+        quantity=order.quantity
+    )
+
+    product_db = db.get(Product,order.product_id)
+    product_db.stock -= order.quantity
+    
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    db.refresh(product_db)
+
+    return item, product_db
+
+@router.get("/orders/{order_id}/items")
+def get_orderitems(
+    order_id : int,
+    db : Session=Depends(get_db)
+):
+    order_db = db.get(OrderItem,order_id)
+    if not order_db:
+        raise HTTPException(status_code=404,detail="Order not found")
+    return order_db
+#main
+from fastapi import FastAPI
+from database import Base, engine
+from routers import users, products, orders
+
+app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
+
+app.include_router(users.router)
+app.include_router(products.router)
+app.include_router(orders.router)
