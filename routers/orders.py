@@ -32,6 +32,7 @@ def order_item(
         raise HTTPException(status_code=404, detail="Order not found")
     
     order = OrderItem(
+        order_id=order_db.id,
         product_id=item.product_id,
         quantity=item.quantity
     )
