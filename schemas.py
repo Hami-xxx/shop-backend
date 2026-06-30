@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from enum import Enum
 #User
 class CreateUser(BaseModel):
     username : str
@@ -30,12 +31,15 @@ class CreateProduct(BaseModel):
 class UpdateProduct(BaseModel):
     stock : int
 #order
+class OrderStatus(str,Enum):
+    pending = "pending"
+    paid = "paid"
+    sending = "sending"
+    delivered = "delivered"
+
 class UpdateStatus(BaseModel):
-    status : str 
+    status : OrderStatus
 
 class OrderItems(BaseModel):
     product_id : int
     quantity : int
-
-class UpdateItems(BaseModel):
-    quantity : str
