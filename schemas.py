@@ -5,12 +5,14 @@ class CreateUser(BaseModel):
     username : str
     email : EmailStr
     password : str = Field(min_length=8,max_length=20)
-    role : str = Field(default="user")
+    role : Role = Field(default="user")
+class Role(str,Enum):
+    admin = "admin"
+    user = "user"
 
 class UserResponse(BaseModel):
     username : str
     email : EmailStr
-    role : str 
 
     model_config = ConfigDict(
         from_attributes=True
@@ -30,6 +32,13 @@ class CreateProduct(BaseModel):
 
 class UpdateProduct(BaseModel):
     stock : int
+
+class ProductResponse(BaseModel):
+    name : str
+    price : int
+    model_config = ConfigDict(
+        from_attributes=True
+    ) 
 #order
 class OrderStatus(str,Enum):
     pending = "pending"
@@ -43,3 +52,19 @@ class UpdateStatus(BaseModel):
 class OrderItems(BaseModel):
     product_id : int
     quantity : int
+
+class OrderItemsRespone(BaseModel):
+    quantity : int
+    product : ProductResponse
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+class OrderRespone(BaseModel):
+    id : int
+    user : UserResponse
+    items : list[OrderItemsRespone]
+    status : str
+    model_config = ConfigDict(
+        from_attributes=True
+    )

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import Order, OrderItem, Product
-from schemas import UpdateStatus, OrderItems
+from schemas import UpdateStatus, OrderItems, OrderRespone
 from dependecies import get_db
 from auth import get_current_user, get_current_admin
 
@@ -18,7 +18,7 @@ def create_order(
 
     db.add(order)
     db.commit()
-    db.refresh()
+    db.refresh(order)
 
     return order
 @router.post("/orders/{id}/items")
@@ -73,6 +73,22 @@ def update_status(
 
     return order_db
 
+@router.delete("/orders/{id}")
+def delete_order(
+    id : int,
+    db : Session=Depends(get_db)
+):
+    order_db = db.get(Order,id)
+    if not order_db:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    db.delete(order_db)
+    db.commit()
+
+    return {
+        "message" : "Order deleted successfully"
+    }
+
 @router.delete("/orders/{id}/items/{item_id}")
 def delete_item(
     id : int,
@@ -99,4 +115,12 @@ def delete_item(
     
     return {
         "messeage" : "Item deleted successfully"
-    }   
+    }
+@router.get("/orders/{id}", response_model=OrderRespone)
+def get_order(
+    id : int,
+    db : Session=Depends(get_db)
+):
+    order = db.get(Order,id)
+
+    return order

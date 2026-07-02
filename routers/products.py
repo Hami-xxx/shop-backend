@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import Product
-from schemas import CreateProduct, UpdateProduct
+from schemas import CreateProduct, UpdateProduct, ProductResponse
 from auth import get_current_admin
 from dependecies import get_db 
 
 router = APIRouter()
 
-@router.post("/products/admin")
+@router.post("/admin/products")
 def create_product(
     product : CreateProduct,
     db : Session=Depends(get_db),
@@ -25,14 +25,14 @@ def create_product(
 
     return new_product
 
-@router.get("/products")
+@router.get("/products", response_model=list[ProductResponse])
 def get_products(
     db : Session=Depends(get_db)
     ):
    
     return db.query(Product).all()
 
-@router.put("/products/admin/{id}")
+@router.put("/admin/products/{id}")
 def update_stock(
     id : int,
     product : UpdateProduct,
@@ -49,7 +49,7 @@ def update_stock(
 
     return product_db
 
-@router.delete("/products/admin/{id}")
+@router.delete("/admin/products/{id}")
 def delete_prodcut(
     id : int,
     db : Session=Depends(get_db),

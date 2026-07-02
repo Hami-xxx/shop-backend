@@ -22,6 +22,11 @@ class Product(Base):
     price = Column(Integer,nullable=False)
     stock = Column(Integer,nullable=False,default=0)
 
+    order_items = relationship(
+        "OrderItem",
+        back_populates="product"
+    )
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer,primary_key=True,autoincrement=True)
@@ -34,6 +39,11 @@ class Order(Base):
     user = relationship(
         "User",
         back_populates="orders"
+    )
+    
+    items = relationship(
+        "OrderItem",
+        back_populates="order"
     )
 
     status = Column(String,default="pending")
@@ -48,10 +58,16 @@ class OrderItem(Base):
         Integer,
         ForeignKey("orders.id")
     )
-
+    order = relationship(
+        "Order",
+        back_populates="items"
+    )
     product_id = Column(
         Integer,
         ForeignKey("products.id")
     )
-
+    product = relationship(
+        "Product",
+        back_populates="order_items"
+    )
     quantity = Column(Integer,nullable=True)
