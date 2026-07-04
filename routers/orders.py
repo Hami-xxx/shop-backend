@@ -25,11 +25,16 @@ def create_order(
 def order_item(
     id : int,
     item : OrderItems,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
+    
     order_db = db.get(Order,id)
     if not order_db:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
     
     order = OrderItem(
         order_id=order_db.id,
@@ -55,7 +60,7 @@ def order_item(
 
     return order
 
-@router.put("/orders/{id}")
+@router.put("/admin/orders/{id}")
 def update_status(
     id : int,
     order : UpdateStatus,
@@ -76,11 +81,15 @@ def update_status(
 @router.delete("/orders/{id}")
 def delete_order(
     id : int,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
     order_db = db.get(Order,id)
     if not order_db:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")    
     
     db.delete(order_db)
     db.commit()
@@ -93,11 +102,15 @@ def delete_order(
 def delete_item(
     id : int,
     item_id : int,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
     order_db = db.get(Order,id)
     if not order_db:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
     
     item_db = db.query(OrderItem).filter_by(
         id=item_id,
@@ -119,8 +132,15 @@ def delete_item(
 @router.get("/orders/{id}", response_model=OrderRespone)
 def get_order(
     id : int,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order = db.get(Order,id)
+    order_db = db.get(Order,id)
 
-    return order
+    if not order_db:
+        raise HTTPException(status_code=404,detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
+
+    return order_db
