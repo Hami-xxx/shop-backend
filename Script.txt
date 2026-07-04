@@ -30,6 +30,11 @@ class Product(Base):
     price = Column(Integer,nullable=False)
     stock = Column(Integer,nullable=False,default=0)
 
+    order_items = relationship(
+        "OrderItem",
+        back_populates="product"
+    )
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer,primary_key=True,autoincrement=True)
@@ -42,6 +47,12 @@ class Order(Base):
     user = relationship(
         "User",
         back_populates="orders"
+    )
+    
+    items = relationship(
+        "OrderItem",
+        back_populates="order",
+        cascade="all, delete-orphan"
     )
 
     status = Column(String,default="pending")
@@ -56,26 +67,35 @@ class OrderItem(Base):
         Integer,
         ForeignKey("orders.id")
     )
-
+    order = relationship(
+        "Order",
+        back_populates="items"
+    )
     product_id = Column(
         Integer,
         ForeignKey("products.id")
     )
-
+    product = relationship(
+        "Product",
+        back_populates="order_items"
+    )
     quantity = Column(Integer,nullable=True)
 #schemas
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from enum import Enum
 #User
 class CreateUser(BaseModel):
     username : str
     email : EmailStr
     password : str = Field(min_length=8,max_length=20)
-    role : str = Field(default="user")
+    role : Role = Field(default="user")
+class Role(str,Enum):
+    admin = "admin"
+    user = "user"
 
 class UserResponse(BaseModel):
     username : str
     email : EmailStr
-    role : str 
 
     model_config = ConfigDict(
         from_attributes=True
@@ -95,16 +115,50 @@ class CreateProduct(BaseModel):
 
 class UpdateProduct(BaseModel):
     stock : int
+
+class ProductResponse(BaseModel):
+    name : str
+    price : int
+    model_config = ConfigDict(
+        from_attributes=True
+    ) 
 #order
+class OrderStatus(str,Enum):
+    pending = "pending"
+    paid = "paid"
+    sending = "sending"
+    delivered = "delivered"
+
 class UpdateStatus(BaseModel):
-    status : str 
+    status : OrderStatus
 
 class OrderItems(BaseModel):
     product_id : int
     quantity : int
 
-class UpdateItems(BaseModel):
-    quantity : str
+class OrderItemsRespone(BaseModel):
+    quantity : int
+    product : ProductResponse
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+class OrderRespone(BaseModel):
+    id : int
+    user : UserResponse
+    items : list[OrderItemsRespone]
+    status : str
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+#dependecies
+from database import SessionLocal
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 #auth
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -201,15 +255,7 @@ def get_current_admin(
             detail="Access denied"
         )
     return current_user
-#dependecies
-from database import SessionLocal
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-#route/users
+#router/users
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import User
@@ -246,11 +292,15 @@ def get_users(
 def update_user(
     id : int,
     user : UpdateUser,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
     user_db = db.get(User,id)
     if not user_db:
         raise HTTPException(status_code=404,detail="User not found")
+    
+    if user_db.id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
 
     user_db.username=user.username
 
@@ -286,7 +336,7 @@ def login(
     ).first()
 
     if not user_db:
-        raise HTTPException(status_code=404,detail="User not found")
+        raise HTTPException(status_code=404,detail="Username wrrong")
     elif verify_password(user.password,user_db.password):
         token = create_access_token(
             {
@@ -305,17 +355,17 @@ def profile(
     current_user=Depends(get_current_user)
 ):
     return current_user
-#route/products
+#router/products
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import Product
-from schemas import CreateProduct, UpdateProduct
+from schemas import CreateProduct, UpdateProduct, ProductResponse
 from auth import get_current_admin
 from dependecies import get_db 
 
 router = APIRouter()
 
-@router.post("/products/admin")
+@router.post("/admin/products")
 def create_product(
     product : CreateProduct,
     db : Session=Depends(get_db),
@@ -333,14 +383,14 @@ def create_product(
 
     return new_product
 
-@router.get("/products")
+@router.get("/products", response_model=list[ProductResponse])
 def get_products(
     db : Session=Depends(get_db)
     ):
    
     return db.query(Product).all()
 
-@router.put("/products/admin/{id}")
+@router.put("/admin/products/{id}")
 def update_stock(
     id : int,
     product : UpdateProduct,
@@ -357,7 +407,7 @@ def update_stock(
 
     return product_db
 
-@router.delete("/products/admin/{id}")
+@router.delete("/admin/products/{id}")
 def delete_prodcut(
     id : int,
     db : Session=Depends(get_db),
@@ -374,87 +424,152 @@ def delete_prodcut(
     return {
         "message" : "Deleted successfully"
     }
-#route/orders
+#orders
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import Order, OrderItem, Product
-from schemas import UpdateStatus, OrderItems, UpdateItems
+from schemas import UpdateStatus, OrderItems, OrderRespone
 from dependecies import get_db
-from auth import get_current_user
+from auth import get_current_user, get_current_admin
 
 router= APIRouter()
 
 @router.post("/orders")
 def create_order(
-    db : Session=Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    db : Session=Depends(get_db)
 ):
     order = Order(
         user_id=current_user.id
-    )
+    ) 
 
     db.add(order)
     db.commit()
     db.refresh(order)
 
     return order
-@router.put("/orders/{id}")
+@router.post("/orders/{id}/items")
+def order_item(
+    id : int,
+    item : OrderItems,
+    current_user=Depends(get_current_user),
+    db : Session=Depends(get_db)
+):
+    
+    order_db = db.get(Order,id)
+    if not order_db:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
+    
+    order = OrderItem(
+        order_id=order_db.id,
+        product_id=item.product_id,
+        quantity=item.quantity
+    )
+    product_db = db.get(Product,item.product_id)
+
+    if not product_db:
+        raise HTTPException(status_code=404,detail="Product not found") 
+
+    if item.quantity > product_db.stock:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Only {product_db.stock} item are available in stock")
+    
+    product_db.stock -= item.quantity
+
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    db.refresh(product_db)
+
+    return order
+
+@router.put("/admin/orders/{id}")
 def update_status(
     id : int,
     order : UpdateStatus,
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    order_db = db.get(Order,id)
+    if not order_db:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order_db.status=order.status
+
+    db.commit()
+    db.refresh(order_db)
+
+    return order_db
+
+@router.delete("/orders/{id}")
+def delete_order(
+    id : int,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
     order_db = db.get(Order,id)
     if not order_db:
         raise HTTPException(status_code=404, detail="Order not found")
-
-    order_db.status=order.status
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")    
+    
+    db.delete(order_db)
     db.commit()
-    db.refresh(order_db)
 
-    return order_db
-    
+    return {
+        "message" : "Order deleted successfully"
+    }
 
-@router.get("/me/orders")
-def my_order(
-    current_user=Depends(get_current_user)
-):
-    return current_user.orders
-
-@router.post("/orders/{order_id}/items")
-def add_item(
-    order_id : int,
-    order : OrderItems,
-    db : Session=Depends(get_db),
-):
-    order_db = db.get(Order,order_id)
-    if not order_db:
-        raise HTTPException(status_code=404,detail="Order not found")
-    
-    item = OrderItem(
-        order_id=order_id,
-        product_id=order.product_id,
-        quantity=order.quantity
-    )
-
-    product_db = db.get(Product,order.product_id)
-    product_db.stock -= order.quantity
-    
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    db.refresh(product_db)
-
-    return item, product_db
-
-@router.get("/orders/{order_id}/items")
-def get_orderitems(
-    order_id : int,
+@router.delete("/orders/{id}/items/{item_id}")
+def delete_item(
+    id : int,
+    item_id : int,
+    current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order_db = db.get(OrderItem,order_id)
+    order_db = db.get(Order,id)
+    if not order_db:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
+    
+    item_db = db.query(OrderItem).filter_by(
+        id=item_id,
+        order_id=order_db.id
+        ).first()
+    
+    if not item_db:
+         raise HTTPException(
+            status_code=404,
+            detail="Item not found in this order"
+            )
+
+    db.delete(item_db)
+    db.commit()
+    
+    return {
+        "messeage" : "Item deleted successfully"
+    }
+@router.get("/orders/{id}", response_model=OrderRespone)
+def get_order(
+    id : int,
+    current_user=Depends(get_current_user),
+    db : Session=Depends(get_db)
+):
+    order_db = db.get(Order,id)
+
     if not order_db:
         raise HTTPException(status_code=404,detail="Order not found")
+    
+    if order_db.user_id != current_user.id:
+        raise HTTPException(status_code=403,detail="Access denied")
+
     return order_db
 #main
 from fastapi import FastAPI
