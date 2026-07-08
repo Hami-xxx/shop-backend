@@ -1,4 +1,5 @@
 from models import Order, OrderItem, Product
+from exceptions.errors import ProductNotFound, OrderNotFound, InsufficientStock
 from fastapi import HTTPException
 def create_order(
     current_user,
@@ -26,7 +27,7 @@ def order_item(
 ):
     order_db = db.get(Order,id)
     if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise OrderNotFound
     
     if order_db.user_id != current_user.id:
         raise HTTPException(status_code=403,detail="Access denied")
@@ -39,12 +40,10 @@ def order_item(
     product_db = db.get(Product,item.product_id)
 
     if not product_db:
-        raise HTTPException(status_code=404,detail="Product not found") 
+        raise ProductNotFound
 
     if item.quantity > product_db.stock:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Only {product_db.stock} item are available in stock")
+        raise InsufficientStock
     
     product_db.stock -= item.quantity
     try:
@@ -66,7 +65,7 @@ def update_status(
 ):
     order_db = db.get(Order,id)
     if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise OrderNotFound
     
     order_db.status=order.status
     try:
@@ -86,7 +85,7 @@ def delete_order(
 ):
     order_db = db.get(Order,id)
     if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise OrderNotFound
     
     if order_db.user_id != current_user.id:
         raise HTTPException(status_code=403,detail="Access denied")    
@@ -111,7 +110,7 @@ def delete_item(
 ):
     order_db = db.get(Order,id)
     if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise OrderNotFound
     
     if order_db.user_id != current_user.id:
         raise HTTPException(status_code=403,detail="Access denied")
@@ -149,7 +148,7 @@ def get_order(
     order_db = db.get(Order,id)
 
     if not order_db:
-        raise HTTPException(status_code=404,detail="Order not found")
+        raise OrderNotFound
     
     if order_db.user_id != current_user.id:
         raise HTTPException(status_code=403,detail="Access denied")
