@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from models import Order, OrderItem, Product
+from services import order_service
 from schemas import UpdateStatus, OrderItems, OrderRespone
 from dependecies import get_db
 from auth import get_current_user, get_current_admin
@@ -12,15 +12,11 @@ def create_order(
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order = Order(
-        user_id=current_user.id
-    ) 
+    return order_service.create_order(
+        current_user=current_user,
+        db=db
+    )
 
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-
-    return order
 @router.post("/orders/{id}/items")
 def order_item(
     id : int,
@@ -28,37 +24,12 @@ def order_item(
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    
-    order_db = db.get(Order,id)
-    if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    if order_db.user_id != current_user.id:
-        raise HTTPException(status_code=403,detail="Access denied")
-    
-    order = OrderItem(
-        order_id=order_db.id,
-        product_id=item.product_id,
-        quantity=item.quantity
+    return order_service.order_item(
+        id=id,
+        item=item,
+        current_user=current_user,
+        db=db
     )
-    product_db = db.get(Product,item.product_id)
-
-    if not product_db:
-        raise HTTPException(status_code=404,detail="Product not found") 
-
-    if item.quantity > product_db.stock:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Only {product_db.stock} item are available in stock")
-    
-    product_db.stock -= item.quantity
-
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    db.refresh(product_db)
-
-    return order
 
 @router.put("/admin/orders/{id}")
 def update_status(
@@ -67,16 +38,11 @@ def update_status(
     db : Session=Depends(get_db),
     current_admin=Depends(get_current_admin)
 ):
-    order_db = db.get(Order,id)
-    if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    order_db.status=order.status
-
-    db.commit()
-    db.refresh(order_db)
-
-    return order_db
+    return order_service.update_status(
+        id=id,
+        order=order,
+        db=db
+    )
 
 @router.delete("/orders/{id}")
 def delete_order(
@@ -84,19 +50,11 @@ def delete_order(
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order_db = db.get(Order,id)
-    if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    if order_db.user_id != current_user.id:
-        raise HTTPException(status_code=403,detail="Access denied")    
-    
-    db.delete(order_db)
-    db.commit()
-
-    return {
-        "message" : "Order deleted successfully"
-    }
+    return order_service.delete_order(
+        id=id,
+        current_user=current_user,
+        db=db
+    )
 
 @router.delete("/orders/{id}/items/{item_id}")
 def delete_item(
@@ -105,42 +63,21 @@ def delete_item(
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order_db = db.get(Order,id)
-    if not order_db:
-        raise HTTPException(status_code=404, detail="Order not found")
-    
-    if order_db.user_id != current_user.id:
-        raise HTTPException(status_code=403,detail="Access denied")
-    
-    item_db = db.query(OrderItem).filter_by(
-        id=item_id,
-        order_id=order_db.id
-        ).first()
-    
-    if not item_db:
-         raise HTTPException(
-            status_code=404,
-            detail="Item not found in this order"
-            )
+    return order_service.delete_item(
+        id=id,
+        item_id=item_id,
+        current_user=current_user,
+        db=db
+    )
 
-    db.delete(item_db)
-    db.commit()
-    
-    return {
-        "messeage" : "Item deleted successfully"
-    }
 @router.get("/orders/{id}", response_model=OrderRespone)
 def get_order(
     id : int,
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
 ):
-    order_db = db.get(Order,id)
-
-    if not order_db:
-        raise HTTPException(status_code=404,detail="Order not found")
-    
-    if order_db.user_id != current_user.id:
-        raise HTTPException(status_code=403,detail="Access denied")
-
-    return order_db
+    return order_service.get_order(
+        id=id,
+        current_user=current_user,
+        db=db
+    )

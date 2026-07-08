@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from models import Product
+from services import products_service
 from schemas import CreateProduct, UpdateProduct, ProductResponse
 from auth import get_current_admin
 from dependecies import get_db 
@@ -13,24 +13,18 @@ def create_product(
     db : Session=Depends(get_db),
     current_admin=Depends(get_current_admin)
 ):
-    new_product = Product(
-        name=product.name,
-        price=product.price,
-        stock=product.stock
+    return products_service.create_product(
+        product=product,
+        db=db
     )
-
-    db.add(new_product)
-    db.commit()
-    db.refresh(new_product)
-
-    return new_product
 
 @router.get("/products", response_model=list[ProductResponse])
 def get_products(
     db : Session=Depends(get_db)
-    ):
-   
-    return db.query(Product).all()
+):
+    return products_service.get_products(
+        db=db
+    )
 
 @router.put("/admin/products/{id}")
 def update_stock(
@@ -39,15 +33,11 @@ def update_stock(
     db : Session=Depends(get_db),
     current_admin=Depends(get_current_admin)
 ):
-    product_db = db.get(Product,id)
-    if not product_db:
-        raise HTTPException(status_code=404,detail="Product not found")
-    
-    product_db.stock+=product.stock
-    db.commit()
-    db.refresh(product_db)
-
-    return product_db
+    return products_service.update_stock(
+        id=id,
+        product=product,
+        db=db
+    )
 
 @router.delete("/admin/products/{id}")
 def delete_prodcut(
@@ -55,15 +45,7 @@ def delete_prodcut(
     db : Session=Depends(get_db),
     current_admin=Depends(get_current_admin)
 ):
-    product_db = db.get(Product,id)
-    if not product_db:
-        raise HTTPException(status_code=404,detail="Product not found")
-    
-    db.delete(product_db)
-    db.commit()
-
-    
-    return {
-        "message" : "Deleted successfully"
-    }
-    
+    return products_service.delete_product(
+        id=id,
+        db=db
+    )    
