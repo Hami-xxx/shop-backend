@@ -6,3 +6,7 @@ class OrderNotFound(Exception):
 
 class InsufficientStock(Exception):
     pass
+
+class AccessDenied(Exception):
+    pass
+    

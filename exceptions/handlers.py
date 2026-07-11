@@ -3,7 +3,8 @@ from fastapi.responses import JSONResponse
 from .errors import (
     ProductNotFound,
     OrderNotFound,
-    InsufficientStock
+    InsufficientStock,
+    AccessDenied
 )
 async def product_not_found_handler(
     request : Request,
@@ -35,5 +36,17 @@ async def insufficient_stock_handler(
         status_code=409,
         content={
             "detail" : "Insufficient stock"
+        }
+    )
+
+async def acces_denied_handeler(
+    request : Request,
+    exc : AccessDenied
+):
+    
+    return JSONResponse(
+        status_code=403,
+        content={
+            "detail" : "Acces denied"
         }
     )
