@@ -1,14 +1,15 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from enum import Enum
 #User
+class Role(str,Enum):
+    admin = "admin"
+    user = "user"
+
 class CreateUser(BaseModel):
     username : str
     email : EmailStr
     password : str = Field(min_length=8,max_length=20)
-    role : Role = Field(default="user")
-class Role(str,Enum):
-    admin = "admin"
-    user = "user"
+    role : Role 
 
 class UserResponse(BaseModel):
     username : str

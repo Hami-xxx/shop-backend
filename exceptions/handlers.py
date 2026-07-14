@@ -4,6 +4,7 @@ from .errors import (
     ProductNotFound,
     OrderNotFound,
     InsufficientStock,
+    UserNotFound,
     AccessDenied
 )
 async def product_not_found_handler(
@@ -39,14 +40,24 @@ async def insufficient_stock_handler(
         }
     )
 
-async def acces_denied_handeler(
+async def user_not_found_handler(
+    request : Request,
+    exc : UserNotFound
+):
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail" : "User not found"
+        }
+    )
+
+async def access_denied_handler(
     request : Request,
     exc : AccessDenied
 ):
-    
     return JSONResponse(
         status_code=403,
         content={
-            "detail" : "Acces denied"
+            "detail" : "Access denied"
         }
     )

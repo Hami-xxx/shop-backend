@@ -36,7 +36,8 @@ def update_stock(
     return products_service.update_stock(
         id=id,
         product=product,
-        db=db
+        db=db,
+        current_admin=current_admin
     )
 
 @router.delete("/admin/products/{id}")
@@ -47,5 +48,6 @@ def delete_prodcut(
 ):
     return products_service.delete_product(
         id=id,
-        db=db
+        db=db,
+        current_admin=current_admin
     )    

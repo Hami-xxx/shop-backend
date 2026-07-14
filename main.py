@@ -5,13 +5,19 @@ from exceptions.errors import (
     ProductNotFound,
     OrderNotFound,
     InsufficientStock,
+    UserNotFound,
+    AccessDenied
 )
 
 from exceptions.handlers import (
     product_not_found_handler,
     order_not_found_handler,
     insufficient_stock_handler,
+    user_not_found_handler,
+    access_denied_handler
 )
+
+import core.logging_config
 
 app = FastAPI()
 
@@ -32,4 +38,12 @@ app.add_exception_handler(
 app.add_exception_handler(
     InsufficientStock,
     insufficient_stock_handler
+)
+app.add_exception_handler(
+    UserNotFound,
+    user_not_found_handler
+)
+app.add_exception_handler(
+    AccessDenied,
+    access_denied_handler
 )
