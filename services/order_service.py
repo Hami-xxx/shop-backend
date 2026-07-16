@@ -47,6 +47,7 @@ def order_item(
         logger.error(
             "Order not found",
             extra={
+                "user_id" : current_user.id,
                 "order_id" : id
             }
         )
@@ -72,6 +73,7 @@ def order_item(
         logger.error(
             "Product not found",
             extra={
+                "user_id" : current_user.id,
                 "product_id" : item.product_id
             }
         )
@@ -81,6 +83,8 @@ def order_item(
         logger.warning(
             "InsufficientStock",
             extra={
+                "user_id" : current_user.id,
+                "order_id" : id,
                 "in_stock" : product_db.stock,
                 "quantity" : item.quantity
             }
@@ -96,6 +100,8 @@ def order_item(
         logger.info(
         "Inventory Updated successfuly",
         extra={
+            "user_id" : current_user.id,
+            "order_id" : id,
             "product_id" : item.product_id,
             "quantity_sold" : item.quantity,
             "remaining_stock" : product_db.stock
@@ -104,7 +110,8 @@ def order_item(
         logger.info(
         "Product added to order",
         extra={
-            "product_id" : item.quantity,
+            "user_id" : current_user.id,
+            "product_id" : item.product_id,
             "quantity" : item.quantity,
             "order_id" : order_db.id
         }
@@ -115,6 +122,7 @@ def order_item(
         logger.exception(
         "Product added failed",
         extra={
+            "user_id" : current_user.id,
             "product_id" : item.product_id,
             "order_id" : order_db.id
         }
@@ -126,13 +134,15 @@ def order_item(
 def update_status(
     id,
     order,
-    db
+    db,
+    current_admin
 ):
     order_db = db.get(Order,id)
     if not order_db:
         logger.error(
             "Order not found",
             extra={
+                "admin_id" : current_admin.id,
                 "order_id" : id
             }
         )
@@ -145,16 +155,17 @@ def update_status(
         logger.info(
             "Order change status",
             extra={
+                "admin_id" : current_admin.id,
                 "order_id" : id,
                 "order_status" : order.status
             }
         )
-    
     except Exception:
         db.rollback()
         logger.exception(
             "Order failed change status",
             extra={
+                "admin_id" : current_admin.id,
                 "order_id" : id
             }
         )
@@ -172,6 +183,7 @@ def delete_order(
         logger.error(
             "Order not found",
             extra={
+                "user_id" : current_user.id,
                 "order_id" : id
             }
         )
@@ -223,6 +235,7 @@ def delete_item(
         logger.error(
             "Order not found",
             extra={
+                "user_id" : current_user.id,
                 "order_id" : id
             }
         )
@@ -246,6 +259,7 @@ def delete_item(
         logger.error(
             "item not found in this order",
             extra={
+                "user_id" : current_user.id,
                 "item_id" : item_id,
                 "order_id" : id
             }
@@ -297,6 +311,7 @@ def get_order(
         logger.error(
             "Order not found",
             extra={
+                "user_id" : current_user.id,
                 "order_id" : id
             }
         )

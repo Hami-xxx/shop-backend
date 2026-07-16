@@ -35,6 +35,7 @@ def create_product(
         logger.exception(
             "Product failed to added",
             extra={
+                "admin_id" : current_admin.id,
                 "product_name" : product.name
             }
         )
@@ -58,6 +59,7 @@ def update_stock(
         logger.error(
             "Product not found",
             extra={
+                "admin_id" : current_admin.id,
                 "product_id" : id
             }
         )
@@ -82,7 +84,8 @@ def update_stock(
         logger.exception(
             "Product change stock failed",
             extra={
-            "product_id" : id
+                "admin_id" : current_admin.id,
+                "product_id" : id
             }
         )
         raise
@@ -98,6 +101,7 @@ def delete_product(
         logger.error(
             "Product not found",
             extra={
+                "admin_id" : current_admin.id,
                 "product_id" : id
             }
         )
@@ -115,7 +119,11 @@ def delete_product(
     except Exception:
         db.rollback()
         logger.exception(
-            "Product failed delete"
+            "Product failed delete",
+            extra={
+                "admin_id" : current_admin.id,
+                "product_id" : id
+            }
         )
         raise
     
