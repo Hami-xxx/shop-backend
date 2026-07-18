@@ -2,6 +2,8 @@ from models import Product
 from fastapi import HTTPException
 import logging
 from exceptions.errors import ProductNotFound
+from core.redis import redis_client
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ def create_product(
         db.add(new_product)
         db.commit()
         db.refresh(new_product)
+        redis_client.delete("products")
         logger.info(
             "Added Product",
             extra={
@@ -45,7 +48,32 @@ def create_product(
 def get_products(
     db
 ):
-    return db.query(Product).all()
+    cached_product = redis_client.get("prdocuts")
+    if cached_product:
+        return json.load(cached_product)
+    
+    products = db.query(Product).all()
+
+    result = []
+
+    for product in products:
+
+        result.append(
+            {
+                "id" : product.id,
+                "name" : product.name,
+                "price" : product.price,
+                "stock" : product.stock
+            }
+        )
+
+    redis_client.set(
+        "products",
+        json.dumps(result),
+        ex=600
+    )
+
+    return result
 
 def update_stock(
     id,
@@ -55,6 +83,7 @@ def update_stock(
 
 ):
     product_db = db.get(Product,id)
+
     if not product_db:
         logger.error(
             "Product not found",
@@ -69,6 +98,7 @@ def update_stock(
     try:
         db.commit()
         db.refresh(product_db)
+        redis_client.delete("products")
         logger.info(
             "Product change stock",
             extra={
@@ -109,6 +139,7 @@ def delete_product(
     try:
         db.delete(product_db)
         db.commit()
+        redis_client.delete("products")
         logger.info(
             "Product deleted",
             extra={
