@@ -8,7 +8,7 @@ from core.dependecies import get_db
 router = APIRouter()
 
 
-@router.post("/users",response_model=UserResponse)
+@router.post("/users",response_model=UserResponse,summary="Create user")
 def create_user(
     user : CreateUser,
     db : Session=Depends(get_db)
@@ -18,7 +18,7 @@ def create_user(
         db=db
     )
 
-@router.get("/admin/users",response_model=list[UserResponse])
+@router.get("/admin/users",response_model=list[UserResponse],summary="Get Users",description="Only admin can get users")
 def get_users(
     db : Session=Depends(get_db),
     current_admin=Depends(get_current_admin)
@@ -28,7 +28,7 @@ def get_users(
         db=db
     )
 
-@router.put("/users/{id}",response_model=UserResponse)
+@router.put("/users/{id}",response_model=UserResponse,summary="Change profile",description="Only change username or email")
 def update_user(
     id : int,
     user : UpdateUser,
@@ -42,7 +42,7 @@ def update_user(
         db=db
     )
 
-@router.delete("/users/{id}")
+@router.delete("/users/{id}",summary="Delete user",description="Only admin can delete user")
 def delete_user(
     id : int,
     db : Session=Depends(get_db),
@@ -53,7 +53,7 @@ def delete_user(
         db=db
     )
 
-@router.post("/login")
+@router.post("/login",summary="Login to account")
 def login(
     user : LoginUser,  
     db : Session=Depends(get_db)
@@ -62,13 +62,13 @@ def login(
         user=user,
         db=db
     )
-@router.get("/me",response_model=UserResponse)
+@router.get("/me",response_model=UserResponse,summary="Get profile",description="Get profile with current user")
 def profile(
     current_user=Depends(get_current_user)
 ):
     return current_user
 
-@router.post("/refresh")
+@router.post("/refresh",summary="Create refresh token")
 def refresh(
     refresh_token : RefreshTokenRequest,
     db : Session=Depends(get_db)
@@ -78,7 +78,7 @@ def refresh(
         db=db
     )
 
-@router.post("/logout")
+@router.post("/logout",summary="Logout account")
 def logout(
     refresh_token : RefreshTokenRequest,
     db : Session=Depends(get_db)

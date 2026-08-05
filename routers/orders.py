@@ -7,7 +7,7 @@ from core.auth import get_current_user, get_current_admin
 
 router= APIRouter()
 
-@router.post("/orders")
+@router.post("/orders",summary="Create Order",description="Create order with current user")
 def create_order(
     current_user=Depends(get_current_user),
     db : Session=Depends(get_db)
@@ -17,7 +17,7 @@ def create_order(
         db=db
     )
 
-@router.post("/orders/{id}/items")
+@router.post("/orders/{id}/items",summary="Add item to order")
 def order_item(
     id : int,
     item : OrderItems,
@@ -31,7 +31,7 @@ def order_item(
         db=db
     )
 
-@router.put("/admin/orders/{id}")
+@router.put("/admin/orders/{id}",summary="Change order status",description="Only admin can update status")
 def update_status(
     id : int,
     order : UpdateStatus,
@@ -45,7 +45,7 @@ def update_status(
         current_admin=current_admin
     )
 
-@router.delete("/orders/{id}")
+@router.delete("/orders/{id}",summary="Delete order")
 def delete_order(
     id : int,
     current_user=Depends(get_current_user),
@@ -57,7 +57,7 @@ def delete_order(
         db=db
     )
 
-@router.delete("/orders/{id}/items/{item_id}")
+@router.delete("/orders/{id}/items/{item_id}",summary="Delete item in order")
 def delete_item(
     id : int,
     item_id : int,
@@ -71,7 +71,7 @@ def delete_item(
         db=db
     )
 
-@router.get("/orders/{id}", response_model=OrderRespone)
+@router.get("/orders/{id}", response_model=OrderRespone,summary="Get order")
 def get_order(
     id : int,
     current_user=Depends(get_current_user),
