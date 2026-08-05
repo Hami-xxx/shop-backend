@@ -6,37 +6,42 @@ class Role(str,Enum):
     user = "user"
 
 class CreateUser(BaseModel):
-    username : str
-    email : EmailStr
-    password : str = Field(min_length=8,max_length=20)
+    username : str = Field(min_length=1)
+    email : EmailStr | None = None
+    password : str = Field(min_length=8)
     role : Role 
 
 class UserResponse(BaseModel):
+    id : int
     username : str
     email : EmailStr
+    role : Role
 
     model_config = ConfigDict(
         from_attributes=True
     )
     
 class UpdateUser(BaseModel):
-    username : str
+    username : str | None = None
+    email : EmailStr | None = None
 
 class LoginUser(BaseModel):
-    username : str
-    password : str
+    username : str = Field(min_length=1,max_length=30)
+    password : str = Field(min_length=8,max_length=20)
 #Product
 class CreateProduct(BaseModel):
-    name : str
-    price : int
-    stock : int
+    name : str = Field(min_length=1)
+    price : int = Field(gt=0)
+    stock : int = Field(gt=0)
 
 class UpdateProduct(BaseModel):
-    stock : int
+    stock : int = Field(gt=0)
 
 class ProductResponse(BaseModel):
+    id : int
     name : str
     price : int
+    stock : int
     model_config = ConfigDict(
         from_attributes=True
     ) 
@@ -51,8 +56,8 @@ class UpdateStatus(BaseModel):
     status : OrderStatus
 
 class OrderItems(BaseModel):
-    product_id : int
-    quantity : int
+    product_id : int = Field(gt=0)
+    quantity : int = Field(gt=0)
 
 class OrderItemsRespone(BaseModel):
     quantity : int
@@ -65,7 +70,10 @@ class OrderRespone(BaseModel):
     id : int
     user : UserResponse
     items : list[OrderItemsRespone]
-    status : str
+    status : OrderStatus
     model_config = ConfigDict(
         from_attributes=True
     )
+
+class RefreshTokenRequest(BaseModel):
+    token : str = Field(min_length=40)

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from services import order_service
 from schemas import UpdateStatus, OrderItems, OrderRespone
-from dependecies import get_db
-from auth import get_current_user, get_current_admin
+from core.dependecies import get_db
+from core.auth import get_current_user, get_current_admin
 
 router= APIRouter()
 
@@ -41,7 +41,8 @@ def update_status(
     return order_service.update_status(
         id=id,
         order=order,
-        db=db
+        db=db,
+        current_admin=current_admin
     )
 
 @router.delete("/orders/{id}")

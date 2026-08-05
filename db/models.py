@@ -1,6 +1,7 @@
-from database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey
+from db.database import Base
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -13,7 +14,11 @@ class User(Base):
         "Order",
         back_populates="user"
     )
-
+    refresh_token = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
 class Product(Base):
     __tablename__ = "products"
@@ -32,9 +37,8 @@ class Order(Base):
     id = Column(Integer,primary_key=True,autoincrement=True)
     user_id = Column(
         Integer,
-        ForeignKey(
-            "users.id"
-        )
+        ForeignKey("users.id"),
+        nullable=False
     )
     user = relationship(
         "User",
@@ -57,7 +61,8 @@ class OrderItem(Base):
 
     order_id = Column(
         Integer,
-        ForeignKey("orders.id")
+        ForeignKey("orders.id"),
+        nullable=False
     )
     order = relationship(
         "Order",
@@ -65,10 +70,33 @@ class OrderItem(Base):
     )
     product_id = Column(
         Integer,
-        ForeignKey("products.id")
+        ForeignKey("products.id"),
+        nullable=False
     )
     product = relationship(
         "Product",
         back_populates="order_items"
     )
-    quantity = Column(Integer,nullable=True)
+    quantity = Column(Integer,nullable=False)
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    token_hash = Column(String,nullable=False,unique=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship(
+        "User",
+        back_populates="refresh_token"
+    )

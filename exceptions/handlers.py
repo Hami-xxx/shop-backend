@@ -45,7 +45,7 @@ async def user_not_found_handler(
     exc : UserNotFound
 ):
     return JSONResponse(
-        status_code=409,
+        status_code=404,
         content={
             "detail" : "User not found"
         }

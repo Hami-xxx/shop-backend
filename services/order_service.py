@@ -1,4 +1,4 @@
-from models import Order, OrderItem, Product
+from db.models import Order, OrderItem, Product
 from exceptions.errors import ProductNotFound, OrderNotFound, InsufficientStock, AccessDenied
 from fastapi import HTTPException
 import logging
@@ -19,7 +19,8 @@ def create_order(
         logger.info(
         "Order Created",
         extra={
-            "user_id" : current_user.id
+            "user_id" : current_user.id,
+            "order_id" : order.id
         }
     )
 
@@ -29,7 +30,8 @@ def create_order(
         logger.exception(
         "failed to create order",
         extra={
-            "user_id" : current_user.id
+            "user_id" : current_user.id,
+            "order_id" : order.id
         }
         )
         raise
@@ -297,7 +299,7 @@ def delete_item(
         raise
     
     return {
-        "messeage" : "Item deleted successfully"
+        "message" : "Item deleted successfully"
     }
 
 def get_order(

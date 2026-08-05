@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from services import products_service
 from schemas import CreateProduct, UpdateProduct, ProductResponse
-from auth import get_current_admin
-from dependecies import get_db 
+from core.auth import get_current_admin
+from core.dependecies import get_db 
 
 router = APIRouter()
 
@@ -15,6 +15,7 @@ def create_product(
 ):
     return products_service.create_product(
         product=product,
+        current_admin=current_admin,
         db=db
     )
 

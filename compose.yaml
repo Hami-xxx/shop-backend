@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    container_name: shop-api
+
+    ports:
+    - 8000:8000
+
+    volumes:
+    - ./database.db:/app/database.db
+
+    restart: unless-stopped

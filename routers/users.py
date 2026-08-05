@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from services import users_service
-from auth import get_current_admin, get_current_user
-from schemas import CreateUser, UserResponse, UpdateUser, LoginUser
-from dependecies import get_db 
+from core.auth import get_current_admin, get_current_user
+from schemas import CreateUser, UserResponse, UpdateUser, LoginUser, RefreshTokenRequest
+from core.dependecies import get_db 
 
 router = APIRouter()
 
@@ -18,9 +18,11 @@ def create_user(
         db=db
     )
 
-@router.get("/users",response_model=list[UserResponse])
+@router.get("/admin/users",response_model=list[UserResponse])
 def get_users(
-    db : Session=Depends(get_db)
+    db : Session=Depends(get_db),
+    current_admin=Depends(get_current_admin)
+
 ):
     return users_service.get_users(
         db=db
@@ -53,7 +55,7 @@ def delete_user(
 
 @router.post("/login")
 def login(
-    user : LoginUser,
+    user : LoginUser,  
     db : Session=Depends(get_db)
 ):
     return users_service.login(
@@ -65,3 +67,23 @@ def profile(
     current_user=Depends(get_current_user)
 ):
     return current_user
+
+@router.post("/refresh")
+def refresh(
+    refresh_token : RefreshTokenRequest,
+    db : Session=Depends(get_db)
+):
+    return users_service.refresh(
+        refresh_token=refresh_token,
+        db=db
+    )
+
+@router.post("/logout")
+def logout(
+    refresh_token : RefreshTokenRequest,
+    db : Session=Depends(get_db)
+):
+    return users_service.logout(
+        refresh_token=refresh_token,
+        db=db
+    )

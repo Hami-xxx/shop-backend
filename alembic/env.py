@@ -5,8 +5,10 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from database import Base, DATA_BASE_URL
-from models import *
+from db.database import Base
+from db.models import *
+
+from core.config import settings
 
 
 # this is the Alembic Config object, which provides
@@ -14,7 +16,7 @@ from models import *
 config = context.config
 config.set_main_option(
     "sqlalchemy.url",
-    DATA_BASE_URL
+    settings.DATABASE_URL
 )
 
 # Interpret the config file for Python logging.

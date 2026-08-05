@@ -1,6 +1,6 @@
-from models import Product
-from fastapi import HTTPException
+from db.models import Product
 import logging
+from fastapi import HTTPException
 from exceptions.errors import ProductNotFound
 from core.redis import redis_client
 import json
@@ -18,6 +18,18 @@ def create_product(
         price=product.price,
         stock=product.stock
     )
+    duplicate_product = db.query(Product).filter_by(name=product.name).first()
+
+    if duplicate_product:
+        logger.warning(
+            "This product is in stock",
+            extra={
+                "product_id" : new_product.id,
+                "admin_id" : current_admin.id,
+                "product_name" : product.name
+            }
+        )
+        raise HTTPException(status_code=409,detail="Product already exists")
     try:
         db.add(new_product)
         db.commit()
@@ -26,6 +38,7 @@ def create_product(
         logger.info(
             "Added Product",
             extra={
+                "product_id" : new_product.id,
                 "product_name" : product.name,
                 "product_price" : product.price,
                 "product_stock" : product.stock,
@@ -39,7 +52,7 @@ def create_product(
             "Product failed to added",
             extra={
                 "admin_id" : current_admin.id,
-                "product_name" : product.name
+                "product_id" : new_product.id
             }
         )
 
@@ -48,9 +61,9 @@ def create_product(
 def get_products(
     db
 ):
-    cached_product = redis_client.get("prdocuts")
+    cached_product = redis_client.get("products")
     if cached_product:
-        return json.load(cached_product)
+        return json.loads(cached_product)
     
     products = db.query(Product).all()
 
