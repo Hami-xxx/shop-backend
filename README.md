@@ -173,7 +173,7 @@ ReDoc
 Clone repository
 
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/shop-api.git
+git clone https://github.com/Hami-xxx/shop-backend.git
 ```
 
 Install dependencies
@@ -204,6 +204,11 @@ REDIS_PORT=
 # 🐳 Run with Docker
 
 ```bash
+Services
+
+- FastAPI
+- PostgreSQL
+- Redis
 docker compose up --build
 ```
 
