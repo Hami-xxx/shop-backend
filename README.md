@@ -1,4 +1,4 @@
-# 🛒 Shop API
+# 🛒 Backend Shop
 
 A production-ready E-commerce REST API built with **FastAPI**.
 
