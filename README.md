@@ -257,9 +257,9 @@ Current test coverage:
 
 * POST `/users`
 * GET `/users`
-* PUT `/`users/{id}
-* DELETE /users/{id}
-* GET /me
+* PUT `/users/{id}`
+* DELETE `/users/{id}`
+* GET `/me`
 
 ## Products
 
@@ -273,9 +273,9 @@ Current test coverage:
 * POST `/orders`
 * POST `/orders/items`
 * PUT `/admin/orders/{id}`
-* DELETE /orders/{id}
-* DELETE /orders/{id}/items/{id}
-* GET /orders/{id}
+* DELETE `/orders/{id}`
+* DELETE `/orders/{id}/items/{id}`
+* GET `/orders/{id}`
 
 ---
 
