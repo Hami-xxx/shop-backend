@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from services import order_service
-from schemas import UpdateStatus, OrderItems, OrderRespone
-from core.dependecies import get_db
-from core.auth import get_current_user, get_current_admin
+from app.api.services import order_service
+from app.schemas.order_schemas import UpdateStatus, OrderItems, OrderRespone
+from app.core.dependecies import get_db
+from app.core.auth import get_current_user, get_current_admin
 
 router= APIRouter()
 

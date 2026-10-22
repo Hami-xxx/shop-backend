@@ -1,5 +1,5 @@
-from db.models import RefreshToken
-from core.auth import hash_refresh_token
+from app.db.models import RefreshToken
+from app.core.auth import hash_refresh_token
 import uuid
 
 def test_create_refresh_token(client,refresh_token,db):

@@ -1,8 +1,11 @@
-from db.models import Product
+from app.db.models import Product
+from app.exceptions.errors import ProductNotFound
+from app.core.redis import redis_client
+
 import logging
+
 from fastapi import HTTPException
-from exceptions.errors import ProductNotFound
-from core.redis import redis_client
+
 import json
 
 logger = logging.getLogger(__name__)

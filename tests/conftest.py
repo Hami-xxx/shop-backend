@@ -4,10 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 from main import app
 from tests.database import override_get_db, TestSessionLocal, testing_engine
-from core.dependecies import get_db
-from core.auth import hash_password, hash_refresh_token, create_refresh_token
-from db.models import User, RefreshToken, Order, OrderItem
-from db.database import Base
+from app.core.dependecies import get_db
+from app.core.auth import hash_password, hash_refresh_token, create_refresh_token
+from app.db.models import User, RefreshToken, Order, OrderItem
+from app.db.database import Base
 from datetime import datetime, timedelta
 from tests.redis import redis_client
 from tests.factories import create_test_product

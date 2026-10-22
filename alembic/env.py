@@ -5,10 +5,10 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from db.database import Base
-from db.models import *
+from app.db.database import Base
+from app.db.models import *
 
-from core.config import settings
+from app.core.config import settings
 
 
 # this is the Alembic Config object, which provides

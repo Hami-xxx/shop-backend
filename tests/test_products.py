@@ -1,4 +1,4 @@
-from db.models import Product
+from app.db.models import Product
 from tests.factories import create_test_product
 import json
 

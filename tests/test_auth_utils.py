@@ -2,7 +2,7 @@ import pytest
 from jose import jwt
 from fastapi import HTTPException
 
-from core.auth import (
+from app.core.auth import (
     hash_password,
     verify_password,
     create_access_token,
@@ -13,7 +13,7 @@ from core.auth import (
     get_current_admin,
 )
 
-from core.config import settings
+from app.core.config import settings
 from tests.factories import create_test_user
 
 

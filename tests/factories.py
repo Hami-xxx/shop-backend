@@ -1,5 +1,5 @@
-from db.models import User, Product
-from core.auth import hash_password
+from app.db.models import User, Product
+from app.core.auth import hash_password
 import uuid
 from tests.redis import redis_client
 import json

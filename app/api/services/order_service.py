@@ -1,6 +1,8 @@
-from db.models import Order, OrderItem, Product
-from exceptions.errors import ProductNotFound, OrderNotFound, InsufficientStock, AccessDenied
+from app.db.models import Order, OrderItem, Product
+from app.exceptions.errors import ProductNotFound, OrderNotFound, InsufficientStock, AccessDenied
+
 from fastapi import HTTPException
+
 import logging
 
 logger = logging.getLogger(__name__)

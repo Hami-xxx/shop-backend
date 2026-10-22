@@ -1,6 +1,8 @@
 from fastapi import FastAPI
-from routers import users, products, orders
-from exceptions.errors import (
+from app.api.routers import orders
+from app.api.routers import products
+from app.api.routers import users
+from app.exceptions.errors import (
     ProductNotFound,
     OrderNotFound,
     InsufficientStock,
@@ -8,7 +10,7 @@ from exceptions.errors import (
     AccessDenied
 )
 
-from exceptions.handlers import (
+from app.exceptions.handlers import (
     product_not_found_handler,
     order_not_found_handler,
     insufficient_stock_handler,
@@ -16,7 +18,7 @@ from exceptions.handlers import (
     access_denied_handler
 )
 
-import core.logging_config
+import app.core.logging_config
 
 app = FastAPI()
 

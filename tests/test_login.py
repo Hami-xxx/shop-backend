@@ -1,6 +1,6 @@
 from tests.factories import create_test_user
-from core.auth import hash_refresh_token
-from db.models import User
+from app.core.auth import hash_refresh_token
+from app.db.models import User
 def test_login_success(client,db):
     create_test_user(db,username="hamid",password="12345678")
     response = client.post(

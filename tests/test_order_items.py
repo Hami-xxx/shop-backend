@@ -1,4 +1,4 @@
-from db.models import OrderItem, Product
+from app.db.models import OrderItem, Product
 
 def test_create_item_success(client,db,test_order,user_token,product):
     response = client.post(

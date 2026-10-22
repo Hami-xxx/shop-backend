@@ -1,4 +1,4 @@
-from db.models import User
+from app.db.models import User
 from tests.factories import create_test_user
 
 def test_create_user_success(client,db):

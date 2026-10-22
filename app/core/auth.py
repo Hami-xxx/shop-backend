@@ -5,9 +5,9 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
-from core.dependecies import get_db
-from db.models import User
-from core.config import settings
+from app.core.dependecies import get_db
+from app.db.models import User
+from app.core.config import settings
 import secrets
 import hashlib
 pwd_context =CryptContext(

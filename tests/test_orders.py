@@ -1,4 +1,4 @@
-from db.models import Order
+from app.db.models import Order
 def test_create_order_success(client,user_token,db):
     response = client.post(
         "/orders",
