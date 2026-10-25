@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 
 def create_user(
     user,
+    role,
     db
 ):
     new_user = User(
         username=user.username,
         email=user.email,
         password=hash_password(user.password),
-        role = user.role
+        role = role.user
     )
     try:
         db.add(new_user)
@@ -164,6 +165,39 @@ def delete_user(
     return {
         "message" : "Deleted successfully"
     }
+
+def change_role(
+    user,
+    db
+):
+    user_db = db.query(User).filter_by(
+        email=user.email
+    ).first()
+    if not user_db:
+        logger.error(
+            "Username not found"
+        )
+        raise UserNotFound()
+
+    user_db.role = user.role
+    try:
+        db.commit()
+        db.refresh(user_db)
+        logger.info(
+            "User change username",
+            extra={
+                "user_id" : user_db.id
+            }
+        )
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "User failed to change role",
+            extra={
+                "user_id" : user_db.id
+            }
+        )
+        raise
 
 def login(
     user,

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.services import users_service
 from app.core.auth import get_current_admin, get_current_user
-from app.schemas.user_schemas import CreateUser, UserResponse, UpdateUser, LoginUser, RefreshTokenRequest
+from app.schemas.user_schemas import CreateUser, UserResponse, UpdateUser, LoginUser, RefreshTokenRequest, Role
 from app.core.dependecies import get_db 
 
 router = APIRouter()
@@ -11,10 +11,12 @@ router = APIRouter()
 @router.post("/users",response_model=UserResponse,summary="Create user")
 def create_user(
     user : CreateUser,
+    role : Role,
     db : Session=Depends(get_db)
 ):
     return users_service.create_user(
         user=user,
+        role=role,
         db=db
     )
 

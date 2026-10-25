@@ -8,7 +8,6 @@ class CreateUser(BaseModel):
     username : str = Field(min_length=1)
     email : EmailStr | None = None
     password : str = Field(min_length=8)
-    role : Role 
 
 class UserResponse(BaseModel):
     id : int
@@ -27,6 +26,10 @@ class UpdateUser(BaseModel):
 class LoginUser(BaseModel):
     username : str = Field(min_length=1,max_length=30)
     password : str = Field(min_length=8,max_length=20)
+
+class ChangeRole(BaseModel):
+    email : EmailStr
+    role : Role
 
 class RefreshTokenRequest(BaseModel):
     token : str = Field(min_length=40)
